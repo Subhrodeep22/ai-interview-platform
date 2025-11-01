@@ -1,8 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { AuthService } from '../services/auth.service';
 import prisma from '../config/database';
-import { Role } from '@prisma/client';
-
+import { Role } from '@ai-interview/database';
 const authService = new AuthService();
 
 export const authenticate = async (
