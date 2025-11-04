@@ -1,54 +1,79 @@
-import { Request, Response } from 'express';
-import { AuthService } from '../services/auth.service';
+import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
+import prisma from '../config/database';
+import { Role } from '@ai-interview/database';
 
-const authService = new AuthService();
+const JWT_SECRET = process.env.JWT_SECRET || 'change-this-secret';
+const JWT_EXPIRES_IN = '7d';
 
-export class AuthController {
-  async register(req: Request, res: Response) {
-    try {
-      const { email, password, firstName, lastName, role } = req.body;
-
-      // Validate input
-      if (!email || !password) {
-        return res.status(400).json({ error: 'Email and password are required' });
-      }
-
-      const result = await authService.register({
-        email,
-        password,
-        firstName,
-        lastName,
-        role,
-      });
-
-      res.status(201).json(result);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+export class AuthService {
+  async register(data: {
+    email: string
+    password: string
+    firstName?: string
+    lastName?: string
+    role?: Role
+  }) {
+    const existingUser = await prisma.user.findUnique({
+      where: { email: data.email },
+    })
+    if (existingUser) {
+      throw new Error('User already exists');
     }
+
+    const hashedPassword = await bcrypt.hash(data.password, 10);
+
+    const user = await prisma.user.create({
+      data: {
+        email: data.email,
+        password: hashedPassword,
+        firstName: data.firstName,
+        lastName: data.lastName,
+        role: data.role || Role.CANDIDATE,
+      },
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        role: true,
+        createdAt: true,
+      },
+    })
+
+    const token = this.generateToken(user.id, user.role);
+
+    return { user, token };
   }
 
-  async login(req: Request, res: Response) {
-    try {
-      const { email, password } = req.body;
+  async login(email: string, password: string) {
+    const user = await prisma.user.findUnique({
+      where: { email },
+      include: { organization: true },
+    })
+    if (!user) throw new Error('Invalid credentials');
 
-      if (!email || !password) {
-        return res.status(400).json({ error: 'Email and password are required' });
-      }
+    const isValid = await bcrypt.compare(password, user.password);
+    if (!isValid) throw new Error('Invalid credentials');
 
-      const result = await authService.login(email, password);
+    const token = this.generateToken(user.id, user.role);
 
-      res.json(result);
-    } catch (error: any) {
-      res.status(401).json({ error: error.message });
-    }
+    const { password: _, ...safeUser } = user;
+
+    return { user: safeUser, token };
   }
 
-  async me(req: Request, res: Response) {
+  private generateToken(userId: string, role: Role): string {
+    return jwt.sign({ userId, role }, JWT_SECRET, {
+      expiresIn: JWT_EXPIRES_IN,
+    })
+  }
+
+  verifyToken(token: string) {
     try {
-      // req.user is set by auth middleware
-      res.json({ user: (req as any).user });
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+      return jwt.verify(token, JWT_SECRET) as { userId: string; role: Role };
+    } catch {
+      throw new Error('Invalid or expired token');
     }
   }
 }

@@ -1,14 +1,18 @@
-import express from 'express';
+import express, { Request, Response } from 'express';
 import { AuthService } from '../services/auth.service';
 import { authenticate } from '../middleware/auth.middleware';
 
 const router = express.Router();
 const authService = new AuthService();
 
-// Register
-router.post('/register', async (req, res) => {
+router.post('/register', async (req: Request, res: Response) => {
   try {
     const { email, password, firstName, lastName, role } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({ error: 'Email and password are required' });
+    }
+
     const result = await authService.register({
       email,
       password,
@@ -16,16 +20,21 @@ router.post('/register', async (req, res) => {
       lastName,
       role,
     });
+
     res.status(201).json(result);
   } catch (error: any) {
     res.status(400).json({ error: error.message });
   }
-});
+})
 
-// Login
-router.post('/login', async (req, res) => {
+router.post('/login', async (req: Request, res: Response) => {
   try {
     const { email, password } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({ error: 'Email and password are required' });
+    }
+
     const result = await authService.login(email, password);
     res.status(200).json(result);
   } catch (error: any) {
@@ -33,9 +42,9 @@ router.post('/login', async (req, res) => {
   }
 });
 
-// Current user
-router.get('/me', authenticate, (req, res) => {
-  res.status(200).json({ user: (req as any).user });
+router.get('/me', authenticate, (req: Request, res: Response) => {
+  const user = (req as any).user;
+  res.status(200).json({ user });
 });
 
 export default router;

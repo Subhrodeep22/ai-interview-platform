@@ -19,7 +19,6 @@ export const authenticate = async (
     const token = authHeader.substring(7);
     const decoded = authService.verifyToken(token);
 
-    // Get user from database
     const user = await prisma.user.findUnique({
       where: { id: decoded.userId },
       select: {
@@ -36,7 +35,6 @@ export const authenticate = async (
       return res.status(401).json({ error: 'User not found' });
     }
 
-    // Attach user to request
     (req as any).user = user;
     next();
   } catch (error) {
@@ -44,7 +42,6 @@ export const authenticate = async (
   }
 };
 
-// Role-based authorization middleware
 export const authorize = (...roles: Role[]) => {
   return (req: Request, res: Response, next: NextFunction) => {
     const user = (req as any).user;
