@@ -1,12 +1,14 @@
 import { create } from 'zustand';
 import api from '@/lib/api';
+// import { Role } from '@ai-interview/database';
+export type Role = 'ADMIN' | 'RECRUITER' | 'HIRING_MANAGER' | 'CANDIDATE';
 
 interface User {
   id: string;
   email: string;
   firstName?: string;
   lastName?: string;
-  role: string;
+  role: Role;
 }
 
 interface AuthState {
@@ -15,9 +17,17 @@ interface AuthState {
   isLoading: boolean;
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<void>;
-  register: (data: any) => Promise<void>;
+  register: (data: RegisterData) => Promise<void>;
   logout: () => void;
   fetchUser: () => Promise<void>;
+}
+
+export interface RegisterData {
+  email: string;
+  password: string;
+  firstName?: string;
+  lastName?: string;
+  role?: Role;
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
@@ -29,7 +39,7 @@ export const useAuthStore = create<AuthState>((set) => ({
   login: async (email: string, password: string) => {
     set({ isLoading: true });
     try {
-      const response = await api.post('/auth/login', { email, password });
+      const response = await api.post('api/auth/login', { email, password });
       const { user, token } = response.data;
       
       localStorage.setItem('token', token);
@@ -40,10 +50,10 @@ export const useAuthStore = create<AuthState>((set) => ({
     }
   },
 
-  register: async (data) => {
+  register: async (data: RegisterData) => {
     set({ isLoading: true });
     try {
-      const response = await api.post('/auth/register', data);
+      const response = await api.post('api/auth/register', data);
       const { user, token } = response.data;
       
       localStorage.setItem('token', token);
@@ -67,7 +77,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     try {
       const response = await api.get('/auth/me');
       set({ user: response.data.user, isAuthenticated: true, isLoading: false });
-    } catch (error) {
+    } catch {
       set({ isLoading: false, token: null, isAuthenticated: false });
       localStorage.removeItem('token');
     }
