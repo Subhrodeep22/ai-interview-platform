@@ -1,10 +1,11 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import prisma from '../config/database';
-import { Role } from '@ai-interview/database';
+import { PrismaClient, Role } from '@ai-interview/database';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'change-this-secret';
 const JWT_EXPIRES_IN = '7d';
+
+const prisma = new PrismaClient();
 
 export class AuthService {
   async register(data: {
