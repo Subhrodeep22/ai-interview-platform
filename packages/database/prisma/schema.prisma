@@ -12,39 +12,96 @@ datasource db {
 // ============================================
 
 model User {
-  id                String         @id @default(auto()) @map("_id") @db.ObjectId
-  email             String         @unique
+  id                String          @id @default(auto()) @map("_id") @db.ObjectId
+  email             String          @unique
   password          String
-  role              Role  
+  role              Role
   firstName         String?
   lastName          String?
-  verified          Boolean        @default(false)
+  verified          Boolean         @default(false)
   verificationToken String?
   resetToken        String?
   resetTokenExpiry  DateTime?
 
-  organizationId    String?        @db.ObjectId
-  organization      Organization?  @relation(fields: [organizationId], references: [id])
+  // recruiter <-> jobs
+  jobs              Job[]           @relation("RecruiterJobs")
 
-  createdAt         DateTime       @default(now())
-  updatedAt         DateTime       @updatedAt
+  // candidate <-> applications
+  applications      Application[]   @relation("UserApplications")
+
+  organizationId    String?         @db.ObjectId
+  organization      Organization?   @relation(fields: [organizationId], references: [id])
+
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
 
   @@map("users")
 }
 
 model Organization {
-  id          String    @id @default(auto()) @map("_id") @db.ObjectId
+  id          String        @id @default(auto()) @map("_id") @db.ObjectId
   name        String
-  slug        String    @unique
-  plan        Plan      @default(FREE)
+  slug        String        @unique
+  plan        Plan          @default(FREE)
   settings    Json?
 
   users       User[]
+  jobs        Job[]
 
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
 
   @@map("organizations")
+}
+
+// ============================================
+// JOB & APPLICATION MODELS
+// ============================================
+
+model Job {
+  id             String         @id @default(auto()) @map("_id") @db.ObjectId
+  title          String
+  description    String
+  location       String?
+  salaryRange    String?
+  requirements   String[]
+  status         JobStatus      @default(DRAFT)
+  visibility     JobVisibility  @default(PUBLIC)
+
+  // recruiter <-> job
+  recruiter      User           @relation("RecruiterJobs", fields: [recruiterId], references: [id])
+  recruiterId    String         @db.ObjectId
+
+  // job <-> organization
+  organizationId String?        @db.ObjectId
+  organization   Organization?  @relation(fields: [organizationId], references: [id])
+
+  // job <-> applications
+  applications   Application[]  @relation("JobApplications")
+
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  @@map("jobs")
+}
+
+model Application {
+  id            String        @id @default(auto()) @map("_id") @db.ObjectId
+
+  // application <-> job
+  jobId         String         @db.ObjectId
+  job           Job            @relation("JobApplications", fields: [jobId], references: [id])
+
+  // application <-> candidate
+  candidateId   String         @db.ObjectId
+  candidate     User           @relation("UserApplications", fields: [candidateId], references: [id])
+
+  status        ApplicationStatus @default(APPLIED)
+
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  @@map("applications")
 }
 
 // ============================================
@@ -63,4 +120,22 @@ enum Plan {
   STARTER
   PROFESSIONAL
   ENTERPRISE
+}
+
+enum JobStatus {
+  DRAFT
+  ONGOING
+  CLOSED
+}
+
+enum JobVisibility {
+  PUBLIC
+  PRIVATE
+}
+
+enum ApplicationStatus {
+  APPLIED
+  REVIEWING
+  ACCEPTED
+  REJECTED
 }
