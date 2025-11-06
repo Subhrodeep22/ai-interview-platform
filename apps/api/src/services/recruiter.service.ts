@@ -1,7 +1,6 @@
 import bcrypt from 'bcryptjs';
 import { prisma, Role, Plan } from '@ai-interview/database';
 
-
 export class RecruiterService {
   async createOrganization(
     recruiterId: string,

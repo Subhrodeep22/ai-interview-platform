@@ -3,6 +3,8 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import authRoutes from './routes/auth.routes';
 import recruiterOrgRoutes from './routes/recruiter/org.routes';
+import recruiterJobRoutes from './routes/recruiter/jobs.routes';
+import applyRoutes from './routes/apply.routes';
 
 dotenv.config();
 
@@ -24,6 +26,8 @@ app.use(express.json());
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/recruiter/org', recruiterOrgRoutes);
+app.use('/api/recruiter/jobs', recruiterJobRoutes);
+app.use('/api/apply', applyRoutes);
 
 // Health check
 app.get('/health', (req, res) => {
