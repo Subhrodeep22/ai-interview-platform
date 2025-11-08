@@ -1,80 +1,60 @@
-import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
-import { PrismaClient, Role } from '@ai-interview/database';
+import { Request, Response } from 'express';
+import { AuthService } from '../services/auth.service';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'change-this-secret';
-const JWT_EXPIRES_IN = '7d';
+const authService = new AuthService();
 
-const prisma = new PrismaClient();
-
-export class AuthService {
-  async register(data: {
-    email: string
-    password: string
-    firstName?: string
-    lastName?: string
-    role?: Role
-  }) {
-    const existingUser = await prisma.user.findUnique({
-      where: { email: data.email },
-    })
-    if (existingUser) {
-      throw new Error('User already exists');
-    }
-
-    const hashedPassword = await bcrypt.hash(data.password, 10);
-
-    const user = await prisma.user.create({
-      data: {
-        email: data.email,
-        password: hashedPassword,
-        firstName: data.firstName,
-        lastName: data.lastName,
-        role: data.role || Role.CANDIDATE,
-      },
-      select: {
-        id: true,
-        email: true,
-        firstName: true,
-        lastName: true,
-        role: true,
-        createdAt: true,
-      },
-    })
-
-    const token = this.generateToken(user.id, user.role);
-
-    return { user, token };
-  }
-
-  async login(email: string, password: string) {
-    const user = await prisma.user.findUnique({
-      where: { email },
-      include: { organization: true },
-    })
-    if (!user) throw new Error('Invalid credentials');
-
-    const isValid = await bcrypt.compare(password, user.password);
-    if (!isValid) throw new Error('Invalid credentials');
-
-    const token = this.generateToken(user.id, user.role);
-
-    const { password: _, ...safeUser } = user;
-
-    return { user: safeUser, token };
-  }
-
-  private generateToken(userId: string, role: Role): string {
-    return jwt.sign({ userId, role }, JWT_SECRET, {
-      expiresIn: JWT_EXPIRES_IN,
-    })
-  }
-
-  verifyToken(token: string) {
+export class AuthController {
+  /**
+   * @route POST /api/auth/register
+   * @desc Register a new user
+   */
+  static async register(req: Request, res: Response) {
     try {
-      return jwt.verify(token, JWT_SECRET) as { userId: string; role: Role };
-    } catch {
-      throw new Error('Invalid or expired token');
+      const { email, password, firstName, lastName, role } = req.body;
+
+      if (!email || !password) {
+        return res.status(400).json({ error: 'Email and password are required' });
+      }
+
+      const result = await authService.register({
+        email,
+        password,
+        firstName,
+        lastName,
+        role,
+      });
+
+      res.status(201).json(result);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
     }
+  }
+
+  /**
+   * @route POST /api/auth/login
+   * @desc Log in an existing user
+   */
+  static async login(req: Request, res: Response) {
+    try {
+      const { email, password } = req.body;
+
+      if (!email || !password) {
+        return res.status(400).json({ error: 'Email and password are required' });
+      }
+
+      const result = await authService.login(email, password);
+      res.status(200).json(result);
+    } catch (error: any) {
+      res.status(401).json({ error: error.message });
+    }
+  }
+
+  /**
+   * @route GET /api/auth/me
+   * @desc Get the authenticated user's profile
+   */
+  static async me(req: Request, res: Response) {
+    const user = (req as any).user;
+    res.status(200).json({ user });
   }
 }

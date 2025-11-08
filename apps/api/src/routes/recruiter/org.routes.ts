@@ -1,72 +1,37 @@
-import express, { Request, Response } from 'express';
-import { authenticate } from '../../middleware/auth.middleware';
-import { OrganizationService } from '../../services/organization.service';
+import express from 'express';
+import { authenticate } from '../../middlewares/auth.middleware';
+import { OrganizationController } from '../../controllers/recruiter/org.controller';
 
 const router = express.Router();
-const orgService = new OrganizationService();
 
 /**
  * @route POST /api/recruiter/org/create
+ * @desc Recruiter creates a new organization
  */
-router.post('/create', authenticate, async (req: Request, res: Response) => {
-  try {
-    const user = (req as any).user;
-    const organization = await orgService.createOrganization(user.id, req.body);
-    res.status(201).json({ message: 'Organization created successfully', organization });
-  } catch (error: any) {
-    res.status(400).json({ error: error.message });
-  }
-});
+router.post('/create', authenticate, OrganizationController.createOrganization);
 
 /**
  * @route PUT /api/recruiter/org/:id
+ * @desc Update organization details
  */
-router.put('/:id', authenticate, async (req: Request, res: Response) => {
-  try {
-    const user = (req as any).user;
-    const organization = await orgService.updateOrganization(req.params.id, user.id, user.role, req.body);
-    res.status(200).json({ message: 'Organization updated successfully', organization });
-  } catch (error: any) {
-    res.status(400).json({ error: error.message });
-  }
-});
+router.put('/:id', authenticate, OrganizationController.updateOrganization);
 
 /**
  * @route DELETE /api/recruiter/org/:id
+ * @desc Delete an organization (Recruiter/Admin only)
  */
-router.delete('/:id', authenticate, async (req: Request, res: Response) => {
-  try {
-    const user = (req as any).user;
-    const result = await orgService.deleteOrganization(req.params.id, user.role);
-    res.status(200).json(result);
-  } catch (error: any) {
-    res.status(400).json({ error: error.message });
-  }
-});
+router.delete('/:id', authenticate, OrganizationController.deleteOrganization);
 
 /**
  * @route POST /api/recruiter/org/:orgId/add-user
+ * @desc Add a new user to an organization
  */
-router.post('/:orgId/add-user', authenticate, async (req: Request, res: Response) => {
-  try {
-    const user = (req as any).user;
-    const newUser = await orgService.addUserToOrganization(req.params.orgId, user.id, req.body);
-    res.status(201).json({ message: 'User added successfully', user: newUser });
-  } catch (error: any) {
-    res.status(400).json({ error: error.message });
-  }
-});
+router.post('/:orgId/add-user', authenticate, OrganizationController.addUserToOrganization);
 
 /**
  * @route GET /api/recruiter/org/:id/users
+ * @desc Get all users in an organization
  */
-router.get('/:id/users', authenticate, async (req: Request, res: Response) => {
-  try {
-    const users = await orgService.getOrganizationUsers(req.params.id);
-    res.status(200).json({ users });
-  } catch (error: any) {
-    res.status(400).json({ error: error.message });
-  }
-});
+router.get('/:id/users', authenticate, OrganizationController.getOrganizationUsers);
 
 export default router;
