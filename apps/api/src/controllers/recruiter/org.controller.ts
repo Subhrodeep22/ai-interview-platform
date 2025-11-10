@@ -30,7 +30,6 @@ export class OrganizationController {
       const user = (req as any).user;
       const organization = await orgService.updateOrganization(
         req.params.id,
-        user.id,
         user.role,
         req.body
       );
@@ -71,8 +70,46 @@ export class OrganizationController {
       );
       res.status(201).json({
         message: 'User added successfully',
-        user: newUser,
+        result: newUser,
       });
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  }
+
+  /**
+   * @desc Update a user's role/details in an organization
+   * @route PUT /api/recruiter/org/:orgId/users/:userId
+   */
+  static async updateUserInOrganization(req: Request, res: Response) {
+    try {
+      const recruiter = (req as any).user;
+      const { orgId, userId } = req.params;
+      const updatedUser = await orgService.updateUserInOrganization(
+        orgId,
+        recruiter.id,
+        userId,
+        req.body
+      );
+      res.status(200).json({
+        message: 'User updated successfully',
+        user: updatedUser,
+      });
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  }
+
+  /**
+   * @desc Remove a user from the organization (non-destructive)
+   * @route DELETE /api/recruiter/org/:orgId/users/:userId
+   */
+  static async removeUserFromOrganization(req: Request, res: Response) {
+    try {
+      const recruiter = (req as any).user;
+      const { orgId, userId } = req.params;
+      const result = await orgService.removeUserFromOrganization(orgId, recruiter.id, userId);
+      res.status(200).json(result);
     } catch (error: any) {
       res.status(400).json({ error: error.message });
     }

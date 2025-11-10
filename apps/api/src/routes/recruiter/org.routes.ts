@@ -64,6 +64,18 @@ router.delete('/:id', authenticate, OrganizationController.deleteOrganization);
 router.post('/:orgId/add-user', authenticate, OrganizationController.addUserToOrganization);
 
 /**
+ * @route PUT /api/recruiter/org/:orgId/users/:userId
+ * @desc Update a user’s role or details in the organization
+ */
+router.put('/:orgId/users/:userId', authenticate, OrganizationController.updateUserInOrganization);
+
+/**
+ * @route DELETE /api/recruiter/org/:orgId/users/:userId
+ * @desc Remove a user from the organization (non-destructive unlink)
+ */
+router.delete('/:orgId/users/:userId', authenticate, OrganizationController.removeUserFromOrganization);
+
+/**
  * @route GET /api/recruiter/org/:id/users
  * @desc Get all users in an organization
  */

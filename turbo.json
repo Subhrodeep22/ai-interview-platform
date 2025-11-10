@@ -1,15 +1,23 @@
 {
-  "pipeline": {
+  "tasks": {
     "dev": {
       "cache": false,
-      "dependsOn": ["^dev"]
+      "dependsOn": [
+        "^dev"
+      ]
     },
     "build": {
-      "dependsOn": ["^build"],
-      "outputs": ["dist/**"]
+      "dependsOn": [
+        "^build"
+      ],
+      "outputs": [
+        "dist/**"
+      ]
     },
     "build:start": {
-      "dependsOn": ["^build:start"],
+      "dependsOn": [
+        "^build:start"
+      ],
       "outputs": []
     }
   }

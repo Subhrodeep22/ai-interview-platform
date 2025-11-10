@@ -6,14 +6,7 @@ const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-producti
 const JWT_EXPIRES_IN = '7d';
 
 export class AuthService {
-  // Register new user
-  async register(data: {
-    email: string;
-    password: string;
-    firstName?: string;
-    lastName?: string;
-    role?: Role;
-  }) {
+  
     // Check if user exists
     const existingUser = await prisma.user.findUnique({
       where: { email: data.email },
@@ -51,10 +44,6 @@ export class AuthService {
     return { user, token };
   }
 
-  // Login
-  async login(email: string, password: string) {
-    // Find user
-    const user = await prisma.user.findUnique({
       where: { email },
       include: {
         organization: true,
@@ -81,21 +70,11 @@ export class AuthService {
     return { user: userWithoutPassword, token };
   }
 
-  // Generate JWT token
-  private generateToken(userId: string, role: Role): string {
-    return jwt.sign(
-      { userId, role },
       JWT_SECRET,
       { expiresIn: JWT_EXPIRES_IN }
     );
   }
 
-  // Verify token
-  verifyToken(token: string) {
-    try {
-      return jwt.verify(token, JWT_SECRET) as { userId: string; role: Role };
-    } catch (error) {
-      throw new Error('Invalid token');
     }
   }
 }
