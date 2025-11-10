@@ -29,7 +29,7 @@ interface Organization {
 
 export default function OrganizationPage() {
   const router = useRouter();
-  const { user, isAuthenticated, fetchUser } = useAuthStore();
+  const { user } = useAuthStore();
   const [organization, setOrganization] = useState<Organization | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
@@ -50,36 +50,13 @@ export default function OrganizationPage() {
     plan: 'FREE',
   });
 
+  // Fetch organization when component mounts
   useEffect(() => {
-    const checkAuthAndFetch = async () => {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        router.push('/recruiter/login');
-        return;
-      }
-
-      // If not authenticated, try to fetch user
-      if (!isAuthenticated || !user) {
-        try {
-          await fetchUser();
-        } catch (err) {
-          localStorage.removeItem('token');
-          router.push('/recruiter/login');
-          return;
-        }
-      }
-    };
-
-    checkAuthAndFetch();
-  }, []); // Only run once on mount
-
-  // Separate effect to fetch organization once user is authenticated
-  useEffect(() => {
-    if (isAuthenticated && user && !organization) {
+    if (user && !organization) {
       fetchOrganization();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAuthenticated, user]);
+  }, [user]);
 
   const fetchOrganization = async () => {
     try {
@@ -128,7 +105,7 @@ export default function OrganizationPage() {
       setOrganization(response.data.organization);
       setIsCreating(false);
       // Refresh user data to get updated organizationId
-      await fetchUser();
+      // Organization created/updated, refresh organization data
       // Fetch organization again to get full details
       await fetchOrganization();
     } catch (err: any) {
@@ -190,7 +167,7 @@ export default function OrganizationPage() {
   // Show loading if checking auth or fetching organization
   if (isLoading || !user) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 flex items-center justify-center">
+      <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
           <p className="mt-4 text-gray-600">Loading...</p>
@@ -199,28 +176,23 @@ export default function OrganizationPage() {
     );
   }
 
-  // Redirect if not authenticated or not a recruiter/admin/hiring manager
-  if (!isAuthenticated || (user.role !== 'RECRUITER' && user.role !== 'ADMIN' && user.role !== 'HIRING_MANAGER')) {
-    return null; // Will redirect in useEffect
+  // Check if user has access
+  if (!user || (user.role !== 'RECRUITER' && user.role !== 'ADMIN' && user.role !== 'HIRING_MANAGER')) {
+    return (
+      <div className="max-w-7xl mx-auto">
+        <div className="bg-white rounded-lg shadow-sm p-6">
+          <p className="text-red-600">You don't have access to this page.</p>
+        </div>
+      </div>
+    );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 py-8 px-4">
-      <div className="max-w-4xl mx-auto">
-        {/* Header */}
-        <div className="mb-8">
-          <Link
-            href="/dashboard"
-            className="inline-flex items-center text-indigo-600 hover:text-indigo-700 mb-4"
-          >
-            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-            Back to Dashboard
-          </Link>
-          <h1 className="text-3xl font-bold text-gray-900">Organization Management</h1>
-          <p className="text-gray-600 mt-2">Manage your organization settings and details</p>
-        </div>
+    <div className="max-w-7xl mx-auto">
+      {/* Header */}
+      <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+        <h1 className="text-2xl font-bold text-gray-900 mb-2">Organization Management</h1>
+        <p className="text-gray-600">Manage your organization settings and details</p>
 
         {/* Error Message */}
         {error && (
