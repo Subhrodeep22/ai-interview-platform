@@ -10,7 +10,14 @@
     "dev": "turbo run dev",
     "build": "turbo run build",
     "build:start": "turbo run build:start",
-    "lint": "turbo run lint"
+    "lint": "turbo run lint",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down",
+    "docker:logs": "docker-compose logs -f",
+    "docker:mongodb": "docker-compose up -d mongodb",
+    "docker:status": "docker-compose ps",
+    "start:services": "docker-compose up -d mongodb",
+    "stop:services": "docker-compose down"
   },
   "devDependencies": {
     "turbo": "^1.11.0",

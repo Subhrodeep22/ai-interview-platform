@@ -23,6 +23,12 @@ app.use(
 
 app.use(express.json());
 
+// Request logging middleware
+app.use((req, res, next) => {
+  console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
+  next();
+});
+
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/recruiter/org', recruiterOrgRoutes);
@@ -32,6 +38,11 @@ app.use('/api/apply', applyRoutes);
 // Health check
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+// Test endpoint to verify API is accessible
+app.get('/api/test', (req, res) => {
+  res.json({ message: 'API is working!', timestamp: new Date().toISOString() });
 });
 
 // Error handler

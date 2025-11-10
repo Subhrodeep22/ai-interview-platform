@@ -109,6 +109,37 @@ export class OrganizationService {
   }
 
   /**
+   * Get organization by ID
+   */
+  async getOrganizationById(orgId: string) {
+    const organization = await prisma.organization.findUnique({
+      where: { id: orgId },
+      include: {
+        users: {
+          select: {
+            id: true,
+            email: true,
+            firstName: true,
+            lastName: true,
+            role: true,
+            createdAt: true,
+          },
+        },
+        _count: {
+          select: {
+            jobs: true,
+            users: true,
+          },
+        },
+      },
+    });
+
+    if (!organization) throw new Error('Organization not found.');
+
+    return organization;
+  }
+
+  /**
    * Get all users of an organization
    */
   async getOrganizationUsers(orgId: string) {

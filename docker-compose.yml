@@ -1,6 +1,35 @@
 version: '3.8'
 
 services:
+  mongodb:
+    image: mongo:7
+    container_name: ai-interview-mongodb
+    restart: always
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_DATABASE: ai_interview_dev
+    volumes:
+      - mongodb_data:/data/db
+      - ./docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d:ro
+    command: mongod --replSet rs0 --bind_ip_all
+    healthcheck:
+      test: |
+        echo 'try {
+          rs.status().ok
+        } catch (err) {
+          rs.initiate({
+            _id: "rs0",
+            members: [{_id: 0, host: "ai-interview-mongodb:27017"}]
+          }).ok
+        }' | mongosh --quiet
+      interval: 10s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
   postgres:
     image: postgres:16
     container_name: ai-interview-postgres
@@ -37,5 +66,6 @@ services:
       - postgres
 
 volumes:
+  mongodb_data:
   postgres_data:
   redis_data:

@@ -39,7 +39,7 @@ export const useAuthStore = create<AuthState>((set) => ({
   login: async (email: string, password: string) => {
     set({ isLoading: true });
     try {
-      const response = await api.post('api/auth/login', { email, password });
+      const response = await api.post('/api/auth/login', { email, password });
       const { user, token } = response.data;
       
       localStorage.setItem('token', token);
@@ -53,7 +53,7 @@ export const useAuthStore = create<AuthState>((set) => ({
   register: async (data: RegisterData) => {
     set({ isLoading: true });
     try {
-      const response = await api.post('api/auth/register', data);
+      const response = await api.post('/api/auth/register', data);
       const { user, token } = response.data;
       
       localStorage.setItem('token', token);
@@ -75,7 +75,7 @@ export const useAuthStore = create<AuthState>((set) => ({
 
     set({ isLoading: true });
     try {
-      const response = await api.get('/auth/me');
+      const response = await api.get('/api/auth/me');
       set({ user: response.data.user, isAuthenticated: true, isLoading: false });
     } catch {
       set({ isLoading: false, token: null, isAuthenticated: false });

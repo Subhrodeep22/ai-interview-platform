@@ -19,6 +19,50 @@ router.post('/create', authenticate, async (req: Request, res: Response) => {
 });
 
 /**
+ * @route GET /api/recruiter/org/me
+ * @desc Get current user's organization
+ * NOTE: This must come before /:id route
+ */
+router.get('/me', authenticate, async (req: Request, res: Response) => {
+  try {
+    const user = (req as any).user;
+    if (!user.organizationId) {
+      return res.status(200).json({ organization: null });
+    }
+
+    const organization = await orgService.getOrganizationById(user.organizationId);
+    res.status(200).json({ organization });
+  } catch (error: any) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+/**
+ * @route GET /api/recruiter/org/:id/users
+ */
+router.get('/:id/users', authenticate, async (req: Request, res: Response) => {
+  try {
+    const users = await orgService.getOrganizationUsers(req.params.id);
+    res.status(200).json({ users });
+  } catch (error: any) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+/**
+ * @route GET /api/recruiter/org/:id
+ * @desc Get organization by ID
+ */
+router.get('/:id', authenticate, async (req: Request, res: Response) => {
+  try {
+    const organization = await orgService.getOrganizationById(req.params.id);
+    res.status(200).json({ organization });
+  } catch (error: any) {
+    res.status(404).json({ error: error.message });
+  }
+});
+
+/**
  * @route PUT /api/recruiter/org/:id
  */
 router.put('/:id', authenticate, async (req: Request, res: Response) => {
@@ -52,18 +96,6 @@ router.post('/:orgId/add-user', authenticate, async (req: Request, res: Response
     const user = (req as any).user;
     const newUser = await orgService.addUserToOrganization(req.params.orgId, user.id, req.body);
     res.status(201).json({ message: 'User added successfully', user: newUser });
-  } catch (error: any) {
-    res.status(400).json({ error: error.message });
-  }
-});
-
-/**
- * @route GET /api/recruiter/org/:id/users
- */
-router.get('/:id/users', authenticate, async (req: Request, res: Response) => {
-  try {
-    const users = await orgService.getOrganizationUsers(req.params.id);
-    res.status(200).json({ users });
   } catch (error: any) {
     res.status(400).json({ error: error.message });
   }
