@@ -1,50 +1,25 @@
-import express, { Request, Response } from 'express';
-import { AuthService } from '../services/auth.service';
-import { authenticate } from '../middleware/auth.middleware';
+import express from 'express';
+import { AuthController } from '../controllers/auth.controller';
+import { authenticate } from '../middlewares/auth.middleware';
 
 const router = express.Router();
-const authService = new AuthService();
 
-router.post('/register', async (req: Request, res: Response) => {
-  try {
-    const { email, password, firstName, lastName, role } = req.body;
+/**
+ * @route POST /api/auth/register
+ * @desc Register a new user
+ */
+router.post('/register', AuthController.register);
 
-    if (!email || !password) {
-      return res.status(400).json({ error: 'Email and password are required' });
-    }
+/**
+ * @route POST /api/auth/login
+ * @desc Log in an existing user
+ */
+router.post('/login', AuthController.login);
 
-    const result = await authService.register({
-      email,
-      password,
-      firstName,
-      lastName,
-      role,
-    });
-
-    res.status(201).json(result);
-  } catch (error: any) {
-    res.status(400).json({ error: error.message });
-  }
-});
-
-router.post('/login', async (req: Request, res: Response) => {
-  try {
-    const { email, password } = req.body;
-
-    if (!email || !password) {
-      return res.status(400).json({ error: 'Email and password are required' });
-    }
-
-    const result = await authService.login(email, password);
-    res.status(200).json(result);
-  } catch (error: any) {
-    res.status(401).json({ error: error.message });
-  }
-});
-
-router.get('/me', authenticate, (req: Request, res: Response) => {
-  const user = (req as any).user;
-  res.status(200).json({ user });
-});
+/**
+ * @route GET /api/auth/me
+ * @desc Get the authenticated user's profile
+ */
+router.get('/me', authenticate, AuthController.me);
 
 export default router;
