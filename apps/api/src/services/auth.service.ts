@@ -93,6 +93,18 @@ export class AuthService {
     });
   }
 
+   /**
+   * Verify JWT token
+   */
+   verifyToken(token: string): { userId: string; role: Role } {
+    try {
+      const decoded = jwt.verify(token, JWT_SECRET) as { userId: string; role: Role };
+      return decoded;
+    } catch (error) {
+      throw new Error('Invalid or expired token');
+    }
+  }
+
   /**
    * Get user profile (for /me route)
    */

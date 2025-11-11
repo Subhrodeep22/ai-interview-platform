@@ -26,7 +26,7 @@ export class JobsController {
   static async getMyJobs(req: Request, res: Response) {
     try {
       const recruiter = (req as any).user;
-      const jobs = await jobsService.getJobsByRecruiter(recruiter.id);
+      const jobs = await jobsService.getRecruiterJobs(recruiter.id);
       res.status(200).json({ jobs });
     } catch (error: any) {
       res.status(400).json({ error: error.message });
@@ -73,7 +73,7 @@ export class JobsController {
         return res.status(400).json({ error: 'Invalid job status.' });
       }
 
-      const updated = await jobsService.changeJobStatus(req.params.id, recruiter.id, status);
+      const updated = await jobsService.updateJobStatus(req.params.id, recruiter.id, status);
       res.status(200).json({ message: 'Job status updated successfully', job: updated });
     } catch (error: any) {
       res.status(400).json({ error: error.message });
@@ -100,7 +100,7 @@ export class JobsController {
    */
   static async getJobsByOrganization(req: Request, res: Response) {
     try {
-      const jobs = await jobsService.getJobsByOrganization(req.params.orgId);
+      const jobs = await jobsService.getOrganizationJobs(req.params.orgId);
       res.status(200).json({ jobs });
     } catch (error: any) {
       res.status(400).json({ error: error.message });
