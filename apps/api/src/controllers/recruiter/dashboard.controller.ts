@@ -11,7 +11,7 @@ export const getRecruiterStats = async (req: Request, res: Response) => {
       return res.status(403).json({ error: 'Forbidden' });
     }
 
-    const stats = await dashboardService.getRecruiterStats(user.id);
+    const stats = await dashboardService.getRecruiterDashboardStats(user.id);
 
     return res.status(200).json(stats);
   } catch (err: any) {
