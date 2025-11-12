@@ -6,6 +6,7 @@ import recruiterOrgRoutes from './routes/recruiter/org.routes';
 import recruiterJobRoutes from './routes/recruiter/jobs.routes';
 import recruiterDashboardRoutes from './routes/recruiter/dashboard.routes';
 import applyRoutes from './routes/apply.routes';
+import googleRoutes from './routes/google.routes';
 
 dotenv.config();
 
@@ -36,6 +37,7 @@ app.use('/api/recruiter/org', recruiterOrgRoutes);
 app.use('/api/recruiter/jobs', recruiterJobRoutes);
 app.use('/api/recruiter/dashboard', recruiterDashboardRoutes);
 app.use('/api/apply', applyRoutes);
+app.use('/api/google', googleRoutes);
 
 // Health check
 app.get('/health', (req, res) => {

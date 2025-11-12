@@ -1,4 +1,7 @@
-import express from 'express';
+import express, { Request, Response } from 'express';
+import jwt from 'jsonwebtoken';
+import { OAuth2Client } from 'google-auth-library';
+import { prisma, Role } from '@ai-interview/database';
 import { AuthController } from '../controllers/auth.controller';
 import { authenticate } from '../middlewares/auth.middleware';
 

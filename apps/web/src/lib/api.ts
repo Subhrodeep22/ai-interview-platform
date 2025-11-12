@@ -1,37 +1,32 @@
 import axios from 'axios';
 
-// Ensure baseURL doesn't have trailing slash and doesn't include /api
 const getBaseURL = () => {
   let url = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
-  // Remove trailing slash if present
-  url = url.replace(/\/$/, '');
-  // Remove /api suffix if accidentally included (endpoints include /api in their paths)
-  url = url.replace(/\/api$/, '');
+  url = url.replace(/\/$/, ''); // remove trailing slash
+  url = url.replace(/\/api$/, ''); // ensure no /api
   return url;
 };
 
 const api = axios.create({
   baseURL: getBaseURL(),
-  withCredentials: true, // optional if you plan to use cookies
+  withCredentials: true, // optional if using cookies in future
 });
 
-// Automatically attach token from localStorage
 api.interceptors.request.use(
   (config) => {
     if (typeof window !== 'undefined') {
       const token = localStorage.getItem('token');
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
-        // Debug: Log token presence (not the actual token)
         if (process.env.NODE_ENV === 'development') {
-          console.log('API Request:', {
+          console.log('%c[API Request]', 'color: #888', {
             url: config.url,
-            hasToken: !!token,
+            hasToken: true,
             tokenLength: token.length,
           });
         }
-      } else {
-        console.warn('No token found in localStorage for request:', config.url);
+      } else if (process.env.NODE_ENV === 'development') {
+        console.warn('[API Request] No token found for', config.url);
       }
     }
     return config;
@@ -39,41 +34,60 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Response interceptor for better error handling
 api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response) {
-      // Server responded with error status
-      if (error.response.status === 401) {
-        // Token expired or invalid - clear it
+      const { status, config } = error.response;
+
+      if (status === 401) {
+        // Token invalid or expired
         if (typeof window !== 'undefined') {
           localStorage.removeItem('token');
-          // Only redirect if we're not already on the login page
+          console.warn(
+            `%c[Unauthorized] ${config?.url} — Token expired or invalid.`,
+            'color: orange; font-weight: bold;'
+          );
+
+          // Avoid infinite redirects if already on login
           if (!window.location.pathname.includes('/login')) {
-            console.warn('Unauthorized - token may be expired. Please login again.');
+            // Optionally redirect user to login
+            // window.location.href = '/login';
           }
         }
       }
-      console.error('API Error:', {
-        url: error.config?.url,
-        method: error.config?.method,
-        status: error.response.status,
-        data: error.response.data,
-      });
+
+      if (process.env.NODE_ENV === 'development') {
+        console.error('[API Error]', {
+          url: config?.url,
+          method: config?.method,
+          status,
+          data: error.response.data,
+        });
+      }
     } else if (error.request) {
-      // Request was made but no response received
-      console.error('API Request Error:', {
+      // Request made but no response
+      console.error('[API Request Error]', {
         url: error.config?.url,
-        method: error.config?.method,
-        message: 'No response from server. Is the API running?',
+        message: 'No response from server. Is the backend running?',
       });
     } else {
-      // Error setting up the request
-      console.error('API Setup Error:', error.message);
+      // Request setup error
+      console.error('[API Setup Error]', error.message);
     }
+
     return Promise.reject(error);
   }
 );
+
+export async function fetchUserProfile() {
+  try {
+    const res = await api.get('/api/auth/me');
+    return res.data;
+  } catch (error) {
+    console.error('[Fetch User Error]', error);
+    return null;
+  }
+}
 
 export default api;
