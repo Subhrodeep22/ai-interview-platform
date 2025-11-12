@@ -33,8 +33,11 @@ export default function OrganizationPage() {
   const [organization, setOrganization] = useState<Organization | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const [isCreating, setIsCreating] = useState(false);
   const [showEditForm, setShowEditForm] = useState(false);
+  const [showAddMemberForm, setShowAddMemberForm] = useState(false);
+  const [isAddingMember, setIsAddingMember] = useState(false);
 
   // Form state for creating organization
   const [createForm, setCreateForm] = useState({
@@ -48,6 +51,12 @@ export default function OrganizationPage() {
     name: '',
     slug: '',
     plan: 'FREE',
+  });
+
+  // Form state for adding member
+  const [addMemberForm, setAddMemberForm] = useState({
+    email: '',
+    role: 'HIRING_MANAGER' as 'RECRUITER' | 'HIRING_MANAGER' | 'CANDIDATE',
   });
 
   // Fetch organization when component mounts
@@ -72,7 +81,6 @@ export default function OrganizationPage() {
       setOrganization(response.data.organization);
     } catch (err: any) {
       if (err?.response?.status === 401) {
-        // Token expired or invalid, redirect to login
         localStorage.removeItem('token');
         router.push('/recruiter/login');
         return;
@@ -86,8 +94,8 @@ export default function OrganizationPage() {
   const handleCreateSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setSuccess('');
 
-    // Generate slug from name if not provided
     const slug = createForm.slug || createForm.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
 
     if (!createForm.name || !slug) {
@@ -104,9 +112,6 @@ export default function OrganizationPage() {
       });
       setOrganization(response.data.organization);
       setIsCreating(false);
-      // Refresh user data to get updated organizationId
-      // Organization created/updated, refresh organization data
-      // Fetch organization again to get full details
       await fetchOrganization();
     } catch (err: any) {
       setError(err?.response?.data?.error || 'Failed to create organization');
@@ -119,10 +124,12 @@ export default function OrganizationPage() {
     if (!organization) return;
 
     setError('');
+    setSuccess('');
     try {
       const response = await api.put(`/api/recruiter/org/${organization.id}`, editForm);
       setOrganization(response.data.organization);
       setShowEditForm(false);
+      setSuccess('Organization updated successfully');
     } catch (err: any) {
       setError(err?.response?.data?.error || 'Failed to update organization');
     }
@@ -143,6 +150,51 @@ export default function OrganizationPage() {
     }
   };
 
+  const handleAddMember = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!organization) return;
+
+    setError('');
+    setSuccess('');
+    setIsAddingMember(true);
+
+    try {
+      const response = await api.post(`/api/recruiter/org/${organization.id}/add-user`, {
+        email: addMemberForm.email.trim(),
+        role: addMemberForm.role,
+      });
+
+      setSuccess(response.data.message || 'Member added successfully');
+      setAddMemberForm({ email: '', role: 'HIRING_MANAGER' });
+      setShowAddMemberForm(false);
+      
+      // Refresh organization data to show new member
+      await fetchOrganization();
+    } catch (err: any) {
+      setError(err?.response?.data?.error || 'Failed to add member');
+    } finally {
+      setIsAddingMember(false);
+    }
+  };
+
+  const handleRemoveMember = async (userId: string, userEmail: string) => {
+    if (!organization) return;
+    if (!confirm(`Are you sure you want to remove ${userEmail} from the organization?`)) {
+      return;
+    }
+
+    setError('');
+    setSuccess('');
+
+    try {
+      await api.delete(`/api/recruiter/org/${organization.id}/users/${userId}`);
+      setSuccess('Member removed successfully');
+      await fetchOrganization();
+    } catch (err: any) {
+      setError(err?.response?.data?.error || 'Failed to remove member');
+    }
+  };
+
   const startEditing = () => {
     if (organization) {
       setEditForm({
@@ -154,7 +206,6 @@ export default function OrganizationPage() {
     }
   };
 
-  // Generate slug from name
   const handleNameChange = (name: string, isEdit: boolean = false) => {
     const slug = name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
     if (isEdit) {
@@ -196,7 +247,7 @@ export default function OrganizationPage() {
 
         {/* Error Message */}
         {error && (
-          <div className="bg-red-50 border-l-4 border-red-500 text-red-700 p-4 rounded-lg mb-6">
+          <div className="bg-red-50 border-l-4 border-red-500 text-red-700 p-4 rounded-lg mt-4">
             <div className="flex items-start">
               <svg className="w-5 h-5 text-red-500 mr-3 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                 <path
@@ -206,6 +257,22 @@ export default function OrganizationPage() {
                 />
               </svg>
               <p className="text-sm font-medium">{error}</p>
+            </div>
+          </div>
+        )}
+
+        {/* Success Message */}
+        {success && (
+          <div className="bg-green-50 border-l-4 border-green-500 text-green-700 p-4 rounded-lg mt-4">
+            <div className="flex items-start">
+              <svg className="w-5 h-5 text-green-500 mr-3 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                <path
+                  fillRule="evenodd"
+                  d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                  clipRule="evenodd"
+                />
+              </svg>
+              <p className="text-sm font-medium">{success}</p>
             </div>
           </div>
         )}
@@ -324,9 +391,9 @@ export default function OrganizationPage() {
 
         {/* Organization Details */}
         {organization && !showEditForm && (
-          <div className="space-y-6">
+          <div className="space-y-6 mt-6">
             {/* Main Organization Card */}
-            <div className="bg-white rounded-2xl shadow-xl p-8 border border-gray-100">
+            <div className="bg-white rounded-lg shadow-sm p-6">
               <div className="flex items-start justify-between mb-6">
                 <div>
                   <div className="flex items-center mb-2">
@@ -396,43 +463,88 @@ export default function OrganizationPage() {
                   <div className="text-sm font-medium text-gray-600">Team Members</div>
                 </div>
               </div>
-
-              <div className="mt-6 pt-6 border-t border-gray-200">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Organization Details</h3>
-                <dl className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <dt className="text-sm font-medium text-gray-500">Organization ID</dt>
-                    <dd className="mt-1 text-sm text-gray-900 font-mono">{organization.id}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-sm font-medium text-gray-500">Created At</dt>
-                    <dd className="mt-1 text-sm text-gray-900">
-                      {new Date(organization.createdAt).toLocaleDateString('en-US', {
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric',
-                      })}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="text-sm font-medium text-gray-500">Last Updated</dt>
-                    <dd className="mt-1 text-sm text-gray-900">
-                      {new Date(organization.updatedAt).toLocaleDateString('en-US', {
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric',
-                      })}
-                    </dd>
-                  </div>
-                </dl>
-              </div>
             </div>
 
-            {/* Team Members Section */}
-            {organization.users && organization.users.length > 0 && (
-              <div className="bg-white rounded-2xl shadow-xl p-8 border border-gray-100">
-                <h3 className="text-xl font-semibold text-gray-900 mb-6">Team Members</h3>
-                <div className="space-y-4">
+            {/* Add Member Section */}
+            <div className="bg-white rounded-lg shadow-sm p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-xl font-semibold text-gray-900">Team Members</h3>
+                <button
+                  onClick={() => setShowAddMemberForm(!showAddMemberForm)}
+                  className="inline-flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-sm font-medium"
+                >
+                  <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
+                  Add Member
+                </button>
+              </div>
+
+              {/* Add Member Form */}
+              {showAddMemberForm && (
+                <div className="bg-gray-50 rounded-lg p-4 mb-4 border border-gray-200">
+                  <form onSubmit={handleAddMember} className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label htmlFor="member-email" className="block text-sm font-medium text-gray-700 mb-2">
+                          Email Address <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          id="member-email"
+                          type="email"
+                          required
+                          value={addMemberForm.email}
+                          onChange={(e) => setAddMemberForm({ ...addMemberForm, email: e.target.value })}
+                          placeholder="user@example.com"
+                          className="block w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-900 placeholder:text-gray-400 focus:border-indigo-500 focus:ring-indigo-500 focus:outline-none"
+                        />
+                        <p className="mt-1 text-xs text-gray-500">
+                          User must have an account. They will be added to your organization.
+                        </p>
+                      </div>
+                      <div>
+                        <label htmlFor="member-role" className="block text-sm font-medium text-gray-700 mb-2">
+                          Role <span className="text-red-500">*</span>
+                        </label>
+                        <select
+                          id="member-role"
+                          required
+                          value={addMemberForm.role}
+                          onChange={(e) => setAddMemberForm({ ...addMemberForm, role: e.target.value as any })}
+                          className="block w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-900 bg-white focus:border-indigo-500 focus:ring-indigo-500 focus:outline-none"
+                        >
+                          <option value="HIRING_MANAGER">Hiring Manager</option>
+                          <option value="RECRUITER">Recruiter</option>
+                          <option value="CANDIDATE">Candidate</option>
+                        </select>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <button
+                        type="submit"
+                        disabled={isAddingMember}
+                        className="inline-flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-sm font-medium disabled:opacity-60"
+                      >
+                        {isAddingMember ? 'Adding...' : 'Add Member'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowAddMemberForm(false);
+                          setAddMemberForm({ email: '', role: 'HIRING_MANAGER' });
+                        }}
+                        className="inline-flex items-center px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors text-sm font-medium"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              )}
+
+              {/* Team Members List */}
+              {organization.users && organization.users.length > 0 ? (
+                <div className="space-y-3">
                   {organization.users.map((member) => (
                     <div
                       key={member.id}
@@ -451,14 +563,31 @@ export default function OrganizationPage() {
                           <div className="text-sm text-gray-500">{member.email}</div>
                         </div>
                       </div>
-                      <span className="px-3 py-1 bg-indigo-100 text-indigo-800 rounded-full text-xs font-semibold">
-                        {member.role}
-                      </span>
+                      <div className="flex items-center gap-3">
+                        <span className="px-3 py-1 bg-indigo-100 text-indigo-800 rounded-full text-xs font-semibold">
+                          {member.role}
+                        </span>
+                        {member.id !== user?.id && (
+                          <button
+                            onClick={() => handleRemoveMember(member.id, member.email)}
+                            className="p-2 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
+                            title="Remove member"
+                          >
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                          </button>
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>
-              </div>
-            )}
+              ) : (
+                <div className="text-center py-8 text-gray-500">
+                  <p>No team members yet. Add your first member above.</p>
+                </div>
+              )}
+            </div>
           </div>
         )}
 
